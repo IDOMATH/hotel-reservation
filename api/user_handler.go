@@ -76,7 +76,7 @@ func (h *UserHandler) HandleGetUser(c *fiber.Ctx) error {
 		id  = c.Params("id")
 		ctx = context.Background()
 	)
-	user, err := h.userStore.GetUserByID(ctx, id)
+	user, err := h.userStore.GetUserById(ctx, id)
 	if err != nil {
 		return err
 	}

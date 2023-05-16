@@ -18,7 +18,8 @@ type Dropper interface {
 type UserStore interface {
 	Dropper
 
-	GetUserByID(context.Context, string) (*types.User, error)
+	GetUserByEmail(context.Context, string) (*types.User, error)
+	GetUserById(context.Context, string) (*types.User, error)
 	GetUsers(context.Context) ([]*types.User, error)
 	InsertUser(context.Context, *types.User) (*types.User, error)
 	DeleteUser(context.Context, string) error
@@ -43,11 +44,7 @@ func (s *MongoUserStore) Drop(ctx context.Context) error {
 }
 
 func (s *MongoUserStore) UpdateUser(ctx context.Context, filter bson.M, params types.UpdateUserParams) error {
-	update := bson.D{
-		{
-			"$set", params.ToBSON(),
-		},
-	}
+	update := bson.M{"$set": params}
 	_, err := s.collection.UpdateOne(ctx, filter, update)
 	if err != nil {
 		return err
@@ -73,7 +70,7 @@ func (s *MongoUserStore) InsertUser(ctx context.Context, user *types.User) (*typ
 	if err != nil {
 		return nil, err
 	}
-	user.ID = res.InsertedID.(primitive.ObjectID)
+	user.Id = res.InsertedID.(primitive.ObjectID)
 	return user, nil
 }
 
@@ -89,7 +86,15 @@ func (s *MongoUserStore) GetUsers(ctx context.Context) ([]*types.User, error) {
 	return users, nil
 }
 
-func (s *MongoUserStore) GetUserByID(ctx context.Context, id string) (*types.User, error) {
+func (s *MongoUserStore) GetUserByEmail(ctx context.Context, email string) (*types.User, error) {
+	var user types.User
+	if err := s.collection.FindOne(ctx, bson.M{"email": email}).Decode(&user); err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+func (s *MongoUserStore) GetUserById(ctx context.Context, id string) (*types.User, error) {
 	oID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return nil, err
